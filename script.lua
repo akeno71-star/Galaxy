@@ -1,4 +1,4 @@
---// 🌌 GalaxyHub GOD VERSION
+--// 🌌 GalaxyHub REBUILT (Fixed + Pro)
 
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
@@ -12,47 +12,65 @@ local PlaceID = game.PlaceId
 
 -- SETTINGS
 local MAX_PLAYERS = 3
-local SAFE_DISTANCE = 300 -- studs (~ fake 2-3km)
+local SAFE_DISTANCE = 350
 
 -- STATES
-local playerDetect = false
-local friendDetect = false
-local lowServer = false
-local safeMode = false
-local moonFinder = false
+local Toggles = {
+    PlayerDetect = false,
+    FriendDetect = false,
+    LowServer = false,
+    SafeMode = false,
+    FullMoon = false
+}
 
--- TARGETS
-local targets = {}
+-- TARGET LIST (editable)
+local targets = {
+    "SHEHEROZ9",
+    "SHEHEROZ1FF",
+    "lordsiam_8",
+    "Mr_Khan"
+}
 
 local visited = {}
 
--- 🌌 BLUR EFFECT
-local blur = Instance.new("BlurEffect", Lighting)
-blur.Size = 15
+-- 🌫 Blur (Glass UI)
+if not Lighting:FindFirstChild("GalaxyBlur") then
+    local blur = Instance.new("BlurEffect", Lighting)
+    blur.Name = "GalaxyBlur"
+    blur.Size = 12
+end
 
--- UI 🧊
+-- UI
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "GalaxyHub"
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 280, 0, 360)
-frame.Position = UDim2.new(0.05, 0, 0.4, 0)
+frame.Size = UDim2.new(0, 300, 0, 380)
+frame.Position = UDim2.new(0.05,0,0.4,0)
 frame.BackgroundColor3 = Color3.fromRGB(20,20,30)
-frame.BackgroundTransparency = 0.2
+frame.BackgroundTransparency = 0.15
 frame.Active = true
 frame.Draggable = true
 
--- Glass effect
-local uicorner = Instance.new("UICorner", frame)
-uicorner.CornerRadius = UDim.new(0,12)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
 
 local stroke = Instance.new("UIStroke", frame)
 stroke.Color = Color3.fromRGB(0,255,200)
 
+-- Glow animation
+task.spawn(function()
+    while true do
+        TweenService:Create(stroke, TweenInfo.new(1), {Color = Color3.fromRGB(0,200,255)}):Play()
+        task.wait(1)
+        TweenService:Create(stroke, TweenInfo.new(1), {Color = Color3.fromRGB(0,255,150)}):Play()
+        task.wait(1)
+    end
+end)
+
 -- Title
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1,0,0,30)
-title.Text = "🌌 GalaxyHub GOD"
+title.Text = "🌌 GalaxyHub PRO"
 title.BackgroundTransparency = 1
 title.TextColor3 = Color3.new(1,1,1)
 
@@ -62,42 +80,57 @@ counter.Position = UDim2.new(0,0,0,30)
 counter.Size = UDim2.new(1,0,0,25)
 counter.BackgroundTransparency = 1
 counter.TextColor3 = Color3.fromRGB(0,255,150)
-counter.Text = "Players: 0"
 
--- WARNING TEXT
+-- Warning Text
 local warnText = Instance.new("TextLabel", frame)
 warnText.Position = UDim2.new(0,0,0,55)
 warnText.Size = UDim2.new(1,0,0,25)
 warnText.BackgroundTransparency = 1
 warnText.TextColor3 = Color3.fromRGB(255,80,80)
-warnText.Text = ""
 
--- TOGGLE CREATOR
-local function toggle(name, y, callback)
+-- Toggle creator
+local function createToggle(name, key, y)
     local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0.9,0,0,28)
+    btn.Size = UDim2.new(0.9,0,0,30)
     btn.Position = UDim2.new(0.05,0,0,y)
     btn.BackgroundColor3 = Color3.fromRGB(40,40,60)
     btn.TextColor3 = Color3.new(1,1,1)
     btn.Text = name.." : OFF"
 
-    local state = false
     btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.Text = name.." : "..(state and "ON" or "OFF")
-        btn.BackgroundColor3 = state and Color3.fromRGB(0,200,120) or Color3.fromRGB(40,40,60)
-        callback(state)
+        Toggles[key] = not Toggles[key]
+        btn.Text = name.." : "..(Toggles[key] and "ON" or "OFF")
+        btn.BackgroundColor3 = Toggles[key] and Color3.fromRGB(0,200,120) or Color3.fromRGB(40,40,60)
     end)
 end
 
--- TOGGLES
-toggle("Player Detector", 90, function(v) playerDetect = v end)
-toggle("Friend Detector", 125, function(v) friendDetect = v end)
-toggle("Low Server Finder", 160, function(v) lowServer = v end)
-toggle("Safe Mode", 195, function(v) safeMode = v end)
-toggle("Full Moon Finder", 230, function(v) moonFinder = v end)
+-- Input box
+local function createBox(placeholder, y)
+    local box = Instance.new("TextBox", frame)
+    box.Size = UDim2.new(0.9,0,0,30)
+    box.Position = UDim2.new(0.05,0,0,y)
+    box.PlaceholderText = placeholder
+    box.BackgroundColor3 = Color3.fromRGB(30,30,50)
+    box.TextColor3 = Color3.new(1,1,1)
 
--- CHECK TARGET
+    box.FocusLost:Connect(function()
+        if box.Text ~= "" then
+            table.insert(targets, box.Text)
+            box.Text = ""
+        end
+    end)
+end
+
+-- Create UI
+createToggle("Player Detector", "PlayerDetect", 90)
+createToggle("Friend Detector", "FriendDetect", 130)
+createToggle("Low Server Finder", "LowServer", 170)
+createToggle("Safe Mode", "SafeMode", 210)
+createToggle("Full Moon Finder", "FullMoon", 250)
+
+createBox("Enter Username / Name", 300)
+
+-- Functions
 local function isTarget(p)
     for _, name in pairs(targets) do
         if p.Name == name or p.DisplayName == name then
@@ -107,28 +140,25 @@ local function isTarget(p)
     return false
 end
 
--- DISTANCE CHECK
 local function getDistance(p)
-    if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+    if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and Character:FindFirstChild("HumanoidRootPart") then
         return (p.Character.HumanoidRootPart.Position - Character.HumanoidRootPart.Position).Magnitude
     end
     return math.huge
 end
 
--- ESCAPE
 local function escape()
     TeleportService:Teleport(PlaceID)
 end
 
--- LOW SERVER
 local function getLowServer()
     local url = "https://games.roblox.com/v1/games/"..PlaceID.."/servers/Public?sortOrder=Asc&limit=100"
-    local success, result = pcall(function()
+    local success, data = pcall(function()
         return HttpService:JSONDecode(game:HttpGet(url))
     end)
 
-    if success then
-        for _, s in pairs(result.data) do
+    if success and data then
+        for _, s in pairs(data.data) do
             if s.playing <= MAX_PLAYERS and not visited[s.id] then
                 visited[s.id] = true
                 return s.id
@@ -144,55 +174,46 @@ local function hopLow()
     end
 end
 
--- 🌕 FULL MOON CHECK (simple simulation)
 local function isFullMoon()
     return Lighting.ClockTime >= 0 and Lighting.ClockTime <= 1
 end
 
--- LOOP
+-- Main Loop
 while true do
     task.wait(2)
 
     Character = LocalPlayer.Character or Character
 
-    -- Player Counter
     counter.Text = "Players: "..#Players:GetPlayers()
+    warnText.Text = ""
 
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then
 
-            -- Distance warning
             local dist = getDistance(p)
+
             if dist < SAFE_DISTANCE then
-                warnText.Text = "⚠ Player Nearby!"
-                if safeMode then
+                warnText.Text = "⚠ Nearby Player!"
+                if Toggles.SafeMode then
                     escape()
                 end
             end
 
-            -- Detect target
-            if playerDetect and isTarget(p) then
+            if Toggles.PlayerDetect and isTarget(p) then
                 escape()
             end
 
-            -- Detect friend
-            if friendDetect and LocalPlayer:IsFriendsWith(p.UserId) then
+            if Toggles.FriendDetect and LocalPlayer:IsFriendsWith(p.UserId) then
                 escape()
             end
         end
     end
 
-    -- Clear warning if safe
-    task.wait(1)
-    warnText.Text = ""
-
-    -- Low server hop
-    if lowServer then
+    if Toggles.LowServer then
         hopLow()
     end
 
-    -- Full moon finder
-    if moonFinder and not isFullMoon() then
+    if Toggles.FullMoon and not isFullMoon() then
         hopLow()
     end
 end
